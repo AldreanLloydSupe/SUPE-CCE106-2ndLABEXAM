@@ -79,12 +79,12 @@ export async function login(email: string, password: string) {
   return { accessToken, user: payload.user || nested?.user || null };
 }
 
-export async function getProfile(token: string) {
+export async function getProfile(token: string, signal?: AbortSignal) {
   if (IS_TEMPORARY_MOCK_API) {
     if (token !== MOCK_TOKEN) throw new ApiError('Unauthorized.', 401);
     return MOCK_USER;
   }
-  const response = await request<User | { user?: User; data?: User }>(API_ENDPOINTS.profile, { headers: { Authorization: `Bearer ${token}` } });
+  const response = await request<User | { user?: User; data?: User }>(API_ENDPOINTS.profile, { signal, headers: { Authorization: `Bearer ${token}` } });
   const payload = unwrap(response);
   return (payload as { user?: User }).user || payload as User;
 }
