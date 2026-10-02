@@ -1,21 +1,30 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- Setters are reserved for the login exercise. */
 import { useState } from 'react';
+import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { IS_TEMPORARY_MOCK_API, login as loginRequest } from '@/services/api';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function SignInScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const router = useRouter();
+  const { login } = useAuth();
+  const [email, setEmail] = useState('student@example.com');
+  const [password, setPassword] = useState('password123');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleLogin = async () => {
-    // TODO EXAM: 1. Validate email and password.
-    // TODO EXAM: 2. Set loading and clear previous errors.
-    // TODO EXAM: 3. POST to /login using fetch() and async/await.
-    // TODO EXAM: 4. Check response.ok and parse the returned JSON.
-    // TODO EXAM: 5. Pass the returned access token and user to the context login().
-    // TODO EXAM: 6. Navigate using router.replace() after successful authentication.
-    // TODO EXAM: 7. Handle login errors and stop loading in finally.
+    if (!email.trim() || !password) { setError('Enter your email and password.'); return; }
+    setLoading(true);
+    setError('');
+    try {
+      const result = await loginRequest(email.trim(), password);
+      await login(result.accessToken, result.user || { email: email.trim() });
+      router.replace('/(app)');
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'Unable to sign in.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -24,6 +33,7 @@ export default function SignInScreen() {
         <Text style={styles.eyebrow}>CCE106 • PRACTICAL EXAMINATION</Text>
         <Text style={styles.title}>Student Service Portal</Text>
         <Text style={styles.subtitle}>Sign in to access student services.</Text>
+        {IS_TEMPORARY_MOCK_API ? <Text style={styles.demoCredentials}>Demo email: student@example.com{`\n`}Demo password: password123</Text> : null}
         <Text style={styles.label}>Email</Text>
         <TextInput style={styles.input} accessibilityLabel="Email" placeholder="student@example.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
         <Text style={styles.label}>Password</Text>
@@ -35,7 +45,6 @@ export default function SignInScreen() {
         <Pressable accessibilityRole="button" style={styles.button} onPress={handleLogin} disabled={loading}>
           <Text style={styles.buttonText}>{loading ? 'Signing in…' : 'Login'}</Text>
         </Pressable>
-        <Text style={styles.note}>Exam starter: login is not implemented yet.</Text>
       </View>
     </ScrollView>
   );
@@ -47,6 +56,7 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 11, fontWeight: '700', color: '#245bb2', marginBottom: 12 },
   title: { fontSize: 28, fontWeight: '700', color: '#17324d' },
   subtitle: { color: '#536579', marginTop: 8, marginBottom: 24 },
+  demoCredentials: { color: '#245bb2', backgroundColor: '#eef5ff', padding: 12, borderRadius: 8, marginBottom: 20, lineHeight: 20 },
   label: { color: '#17324d', fontWeight: '600', marginBottom: 8 },
   input: { borderWidth: 1, borderColor: '#c6d2e1', borderRadius: 8, padding: 14, fontSize: 16, marginBottom: 16, color: '#17324d' },
   feedback: { minHeight: 28 },

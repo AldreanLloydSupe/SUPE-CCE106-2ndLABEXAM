@@ -1,28 +1,33 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- State setters and loader are exam placeholders. */
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { type Student } from '@/components/StudentCard';
+import { ApiError, getStudent } from '@/services/api';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function StudentDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { token, logout } = useAuth();
   const [student, setStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const loadStudent = async () => {
-    // TODO EXAM: Validate the id read from useLocalSearchParams().
-    // TODO EXAM: Set loading and clear previous errors.
-    // TODO EXAM: GET /students/{id} with fetch(), async/await, and a Bearer token.
-    // TODO EXAM: Check response.ok; handle 401 Unauthorized and missing records.
-    // TODO EXAM: Parse JSON and update student state.
-    // TODO EXAM: Handle errors and stop loading in finally.
+    const studentId = Array.isArray(id) ? id[0] : id;
+    if (!studentId || !token) { setError('A valid student ID is required.'); setLoading(false); return; }
+    setLoading(true);
+    setError('');
+    try { setStudent(await getStudent(studentId, token)); }
+    catch (caughtError) {
+      if (caughtError instanceof ApiError && caughtError.status === 401) { await logout(); return; }
+      setError(caughtError instanceof Error ? caughtError.message : 'Unable to load this student.');
+    } finally { setLoading(false); }
   };
 
   useEffect(() => {
-    // TODO EXAM: Call loadStudent() when id changes.
-  }, [id]);
+    loadStudent();
+  }, [id, token]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>

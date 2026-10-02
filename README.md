@@ -31,6 +31,10 @@ Date:
 
 Base URL: `REPLACE_WITH_EXAM_API` (set in `constants/api.ts`)
 
+The app reads the API base URL from `EXPO_PUBLIC_API_BASE_URL`. Copy
+`.env.example` to `.env` and replace the value with the URL supplied by the
+instructor. Do not commit `.env` or credentials.
+
 POST /login
 
 GET /students
@@ -41,6 +45,11 @@ GET /profile
 
 Use the instructor's API documentation for payloads and response fields.
 
+The API integration is in `services/api.ts`. It expects a token field named
+`accessToken`, `access_token`, or `token`, and accepts common `data`, `user`,
+and `students` response wrappers. Adjust the mappings there if the instructor
+uses different field names.
+
 ### How to Run
 
 ```sh
@@ -50,14 +59,13 @@ npx expo start
 
 Press `w` for web, or run `npm run web` directly.
 
-The starter opens the dashboard without authentication so its screens can be inspected.
-Use **Open Sign In** to preview the login screen. Login, logout, and View Details
-buttons intentionally do nothing until their TODOs are completed. Student screens
-initially show loading until students implement the loaders. Preview the detail
-layout on web at `/student/1`; this does not create a sample API record.
+The application restores authenticated sessions on native platforms, protects the
+dashboard and student detail routes, and uses the configured API for login and
+student data. The web build does not persist tokens because SecureStore is
+native-only.
 
-Search for `TODO EXAM` throughout the project. No requests or credentials are
-provided. Protect both the application tabs and the student detail route.
+No requests or credentials are provided. Use the instructor's API URL and test
+credentials when configuring the app.
 
 Expo SecureStore is used only in `context/AuthContext.tsx`. Its methods are not
 implemented in this starter. SecureStore supports native platforms, not web;
