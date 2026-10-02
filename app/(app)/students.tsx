@@ -1,17 +1,22 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import StudentCard, { type Student } from '@/components/StudentCard';
+import { PageTitle, Screen, StatePanel } from '@/components/Portal';
+import { palette, ui } from '@/constants/portal';
 import { ApiError, getStudents } from '@/services/api';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function StudentsScreen() {
   const { token, logout } = useAuth();
+  const { width } = useWindowDimensions();
+  const columns = width >= 760 ? 2 : 1;
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
 
-  const loadStudents = async () => {
+  const loadStudents = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     setError('');
@@ -21,41 +26,42 @@ export default function StudentsScreen() {
       if (caughtError instanceof ApiError && caughtError.status === 401) { await logout(); return; }
       setError(caughtError instanceof Error ? caughtError.message : 'Unable to load students.');
     } finally { setLoading(false); }
-  };
+  }, [token, logout]);
 
   useEffect(() => {
     loadStudents();
-  }, [token]);
+  }, [loadStudents]);
 
-  const filteredStudents = students.filter((student) => String(student.name || '').toLowerCase().includes(search.trim().toLowerCase()));
+  const query = search.trim().toLowerCase();
+  const filteredStudents = students.filter(student => [student.name, student.email, student.course].some(value => String(value || '').toLowerCase().includes(query)));
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Students</Text>
-      <TextInput style={styles.input} accessibilityLabel="Search students" placeholder="Search by name" value={search} onChangeText={setSearch} />
-      {loading ? (
-        <View style={styles.state}><ActivityIndicator color="#245bb2" /><Text style={styles.text}>Loading students…</Text></View>
-      ) : error ? (
-        <View style={styles.state} accessibilityLiveRegion="polite"><Text style={styles.error}>{error}</Text><Pressable accessibilityRole="button" onPress={loadStudents}><Text style={styles.link}>Try Again</Text></Pressable></View>
-      ) : (
-        <FlatList
-          data={filteredStudents}
-          keyExtractor={(item, index) => String(item.id ?? index)}
-          renderItem={({ item }) => <StudentCard student={item} />}
-          ListEmptyComponent={<View style={styles.state}><Text style={styles.text}>No students found.</Text></View>}
-        />
-      )}
-    </View>
-  );
+  return <Screen scroll={false}>
+    <FlatList
+      key={columns}
+      numColumns={columns}
+      style={{ flex: 1 }}
+      contentContainerStyle={{ gap: 16, paddingBottom: 16 }}
+      columnWrapperStyle={columns > 1 ? { gap: 16 } : undefined}
+      keyboardShouldPersistTaps="handled"
+      data={loading || error ? [] : filteredStudents}
+      keyExtractor={(item, index) => String(item.id ?? index)}
+      renderItem={({ item }) => <View style={{ width: columns === 2 ? '49%' : '100%', flexShrink: 1 }}><StudentCard student={item} /></View>}
+      ListHeaderComponent={<View style={styles.listHeader}>
+        <PageTitle eyebrow="THE CAMPUS COMMUNITY" title="Student directory" subtitle="Find familiar faces. Get to know your community." />
+        <View style={styles.searchWrap}><Ionicons name="search-outline" size={21} color={palette.muted} /><TextInput style={styles.input} accessibilityLabel="Search students" placeholder="Search name, email, or course" placeholderTextColor={palette.muted} value={search} onChangeText={setSearch} autoCapitalize="none" autoCorrect={false} returnKeyType="search" />{search ? <Pressable accessibilityRole="button" accessibilityLabel="Clear search" onPress={() => setSearch('')} style={styles.clear}><Ionicons name="close-circle" size={20} color={palette.muted} /></Pressable> : null}</View>
+        {!loading && !error && <View style={styles.results}><Text style={styles.resultText}>{filteredStudents.length} {filteredStudents.length === 1 ? 'student' : 'students'}{query ? ' found' : ' in the directory'}</Text><Text style={styles.resultsHint}>OUR COMMUNITY</Text></View>}
+      </View>}
+      ListEmptyComponent={loading ? <StatePanel loading title="Loading your community…" /> : error ? <StatePanel title="Couldn’t load students" message={error} onRetry={loadStudents} /> : <StatePanel title={query ? 'No matches just yet' : 'No students yet'} message={query ? 'Try a different name, email, or course.' : 'Student records will appear here when they are available.'} />}
+    />
+  </Screen>;
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, backgroundColor: '#f2f5fa' },
-  title: { fontSize: 28, fontWeight: '700', color: '#17324d', marginBottom: 20 },
-  input: { padding: 14, borderWidth: 1, borderColor: '#c6d2e1', borderRadius: 8, backgroundColor: '#ffffff', color: '#17324d', marginBottom: 20 },
-  state: { padding: 24, gap: 12, alignItems: 'center' },
-  text: { color: '#536579' },
-  note: { color: '#536579', fontSize: 12 },
-  error: { color: '#b42318' },
-  link: { color: '#245bb2', padding: 12 },
+  listHeader: { gap: 24, marginBottom: 4 },
+  searchWrap: { flexDirection: 'row', alignItems: 'center', paddingLeft: 18, borderWidth: 1, borderColor: palette.border, borderRadius: 14, backgroundColor: palette.surface, gap: 12 },
+  input: { flex: 1, minWidth: 0, paddingVertical: 18, paddingRight: 12, fontSize: 14, color: palette.ink },
+  clear: { minWidth: 48, minHeight: 52, justifyContent: 'center', alignItems: 'center' },
+  results: { ...ui.row, justifyContent: 'space-between', flexWrap: 'wrap' },
+  resultText: { color: palette.ink, fontSize: 13, fontWeight: '600' },
+  resultsHint: { color: palette.muted, fontSize: 9, letterSpacing: 1.5 },
 });
