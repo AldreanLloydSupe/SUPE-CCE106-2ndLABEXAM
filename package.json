@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test:auth": "node --test tests/auth-context.test.cjs"
+    "test:auth": "node --test tests/auth-context.test.cjs",
+    "test:directory": "node --test tests/student-directory.test.cjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
