@@ -50,6 +50,16 @@ The API integration is in `services/api.ts`. It expects a token field named
 and `students` response wrappers. Adjust the mappings there if the instructor
 uses different field names.
 
+Requests time out after 15 seconds and display separate messages for connection
+failures, expired sessions, unavailable services, and invalid responses. Successful
+responses must contain JSON. Student records need a unique, nonempty string ID or
+a finite numeric ID; optional name, email, and course fields must be strings or
+null. Invalid student lists are reported as errors instead of appearing empty.
+
+The placeholder API configuration currently enables local demo data. Configure
+and test the instructor's real API before submission; automated tests use mocked
+responses and do not verify that server's payload format.
+
 ### How to Run
 
 ```sh
@@ -78,6 +88,10 @@ Compiler and lint checks:
 npx tsc --noEmit
 npm run lint
 ```
+
+Run the authentication, directory, and API regression tests with `npm test`.
+Individual suites are available through `npm run test:auth`,
+`npm run test:directory`, and `npm run test:api`.
 
 ### Required Git Commits
 
